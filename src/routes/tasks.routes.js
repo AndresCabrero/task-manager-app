@@ -1,12 +1,13 @@
 const express = require('express');
+const authMiddleware = require('../middleware/auth.middleware');
 
 const router = express.Router();
 const Task = require('../models/Task');
 
 // Obtener todas las tareas
-router.get('/tasks', async (req, res) => {
+router.get('/tasks', authMiddleware, async (req, res) => {
     try {
-        const tasks = await Task.find();
+        const tasks = await Task.find({ userId: req.userId });
         res.json(tasks);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener tareas' });
@@ -14,12 +15,12 @@ router.get('/tasks', async (req, res) => {
 });
 
 // Agregar una nueva tarea
-router.post('/tasks', async (req, res) => {
+router.post('/tasks', authMiddleware, async (req, res) => {
     try {
         const { title } = req.body;
         if (!title) return res.status(400).json({ error: "El título es obligatorio" });
         
-        const newTask = new Task({ title });
+        const newTask = new Task({ title, completed: false, userId: req.userId });
         await newTask.save();
         res.json(newTask);
     } catch (error) {
