@@ -17,8 +17,10 @@ connectDB();
 
 const taskRoutes = require('./routes/tasks.routes');
 const authRoutes = require('./routes/auth.routes');
+const categoryRoutes = require('./routes/category.routes');
 
 app.use('/api', taskRoutes);
+app.use('/api', categoryRoutes);
 app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {

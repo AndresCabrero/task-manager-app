@@ -1,10 +1,36 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const authMiddleware = require('../middleware/auth.middleware');
+const adminMiddleware = require('../middleware/admin.middleware');
 const upload = require('../middleware/upload.middleware');
 
 const router = express.Router();
 const Task = require('../models/Task');
 const User = require('../models/user.model');
+const Category = require('../models/Category');
+
+// Ruta solo para administradores: ver todas las tareas
+router.get('/admin/tasks', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const allTasks = await Task.find().populate('categories');
+        const users = await User.find({}, 'username');
+
+        const userMap = {};
+        users.forEach(user => {
+            userMap[user._id.toString()] = user.username;
+        });
+
+        const tasks = allTasks.map(task => ({
+            ...task.toObject(),
+            username: userMap[task.userId] || 'Desconocido'
+        }));
+
+        res.json(tasks);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener tareas de administrador' });
+    }
+});
 
 // Obtener tareas según el rol
 router.get('/tasks', authMiddleware, async (req, res) => {
@@ -12,7 +38,7 @@ router.get('/tasks', authMiddleware, async (req, res) => {
         let tasks;
 
         if (req.userRole === 'admin') {
-            const allTasks = await Task.find();
+            const allTasks = await Task.find().populate('categories');
             const users = await User.find({}, 'username');
 
             const userMap = {};
@@ -25,7 +51,7 @@ router.get('/tasks', authMiddleware, async (req, res) => {
                 username: userMap[task.userId] || 'Desconocido'
             }));
         } else {
-            tasks = await Task.find({ userId: req.userId });
+            tasks = await Task.find({ userId: req.userId }).populate('categories');
         }
 
         res.json(tasks);
@@ -34,10 +60,10 @@ router.get('/tasks', authMiddleware, async (req, res) => {
     }
 });
 
-// Agregar una nueva tarea con imagen opcional
+// Agregar una nueva tarea con imagen opcional y categorías
 router.post('/tasks', authMiddleware, upload.single('image'), async (req, res) => {
     try {
-        const { title } = req.body;
+        const { title, categories } = req.body;
 
         if (!title) {
             return res.status(400).json({ error: 'El título es obligatorio' });
@@ -45,15 +71,33 @@ router.post('/tasks', authMiddleware, upload.single('image'), async (req, res) =
 
         const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
+        let categoryIds = [];
+
+        if (categories) {
+            const parsedCategories = typeof categories === 'string'
+                ? JSON.parse(categories)
+                : categories;
+
+            const validCategories = await Category.find({
+                _id: { $in: parsedCategories },
+                userId: req.userId
+            });
+
+            categoryIds = validCategories.map(category => category._id);
+        }
+
         const newTask = new Task({
             title,
             status: 'pendiente',
             imageUrl,
+            categories: categoryIds,
             userId: req.userId
         });
 
         await newTask.save();
-        res.json(newTask);
+        const savedTask = await Task.findById(newTask._id).populate('categories');
+
+        res.json(savedTask);
     } catch (error) {
         res.status(500).json({ error: 'Error al crear la tarea' });
     }
@@ -86,9 +130,43 @@ router.put('/tasks/:id', authMiddleware, async (req, res) => {
         task.status = status;
         await task.save();
 
-        res.json(task);
+        const updatedTask = await Task.findById(task._id).populate('categories');
+        res.json(updatedTask);
     } catch (error) {
         res.status(500).json({ error: 'Error al actualizar la tarea' });
+    }
+});
+
+// Actualizar categorías de una tarea
+router.put('/tasks/:id/categories', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { categories } = req.body;
+
+        let task;
+
+        if (req.userRole === 'admin') {
+            task = await Task.findById(id);
+        } else {
+            task = await Task.findOne({ _id: id, userId: req.userId });
+        }
+
+        if (!task) {
+            return res.status(404).json({ error: 'Tarea no encontrada o no tienes permiso para modificarla' });
+        }
+
+        const validCategories = await Category.find({
+            _id: { $in: categories || [] },
+            userId: req.userId
+        });
+
+        task.categories = validCategories.map(category => category._id);
+        await task.save();
+
+        const updatedTask = await Task.findById(task._id).populate('categories');
+        res.json(updatedTask);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar categorías de la tarea' });
     }
 });
 
@@ -107,6 +185,15 @@ router.delete('/tasks/:id', authMiddleware, async (req, res) => {
 
         if (!task) {
             return res.status(404).json({ error: 'Tarea no encontrada o no tienes permiso para eliminarla' });
+        }
+
+        // Borrar imagen física si existe
+        if (task.imageUrl) {
+            const imagePath = path.join(__dirname, '../../', task.imageUrl);
+
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
+            }
         }
 
         await Task.findByIdAndDelete(id);

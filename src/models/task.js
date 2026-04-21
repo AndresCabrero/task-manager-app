@@ -8,6 +8,12 @@ const taskSchema = new mongoose.Schema({
         default: 'pendiente'
     },
     imageUrl: { type: String, default: '' },
+
+    categories: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category'
+    }],
+
     userId: { type: String, required: true }
 }, { timestamps: true });
 
