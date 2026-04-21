@@ -9,12 +9,20 @@ const SECRET_KEY = 'mi_secreto'; // Cambiar por una clave segura
 // Registro de usuario
 router.post('/register', async (req, res) => {
     try {
-        const { username, password } = req.body;
-        const user = new User({ username, password });
+        const { username, password, name, email } = req.body;
+
+        const user = new User({
+            username,
+            password,
+            name,
+            email,
+            role: 'user'
+        });
+
         await user.save();
         res.status(201).json({ message: 'Usuario creado' });
     } catch (error) {
-        res.status(400).json({ error: 'El usuario ya existe' });
+        res.status(400).json({ error: 'El usuario ya existe o los datos no son válidos' });
     }
 });
 
@@ -23,9 +31,11 @@ router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         const user = await User.findOne({ username });
+
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ error: 'Credenciales incorrectas' });
         }
+
         const token = jwt.sign({ userId: user._id }, SECRET_KEY, { expiresIn: '1h' });
         res.json({ token });
     } catch (error) {
