@@ -37,9 +37,17 @@ router.get('/tasks', authMiddleware, async (req, res) => {
 router.post('/tasks', authMiddleware, async (req, res) => {
     try {
         const { title } = req.body;
-        if (!title) return res.status(400).json({ error: "El título es obligatorio" });
 
-        const newTask = new Task({ title, completed: false, userId: req.userId });
+        if (!title) {
+            return res.status(400).json({ error: 'El título es obligatorio' });
+        }
+
+        const newTask = new Task({
+            title,
+            status: 'pendiente',
+            userId: req.userId
+        });
+
         await newTask.save();
         res.json(newTask);
     } catch (error) {
@@ -47,11 +55,17 @@ router.post('/tasks', authMiddleware, async (req, res) => {
     }
 });
 
-// Actualizar una tarea
+// Actualizar estado de una tarea
 router.put('/tasks/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const { completed } = req.body;
+        const { status } = req.body;
+
+        const validStatuses = ['pendiente', 'en_progreso', 'completada'];
+
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Estado no válido' });
+        }
 
         let task;
 
@@ -65,7 +79,7 @@ router.put('/tasks/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Tarea no encontrada o no tienes permiso para modificarla' });
         }
 
-        task.completed = completed;
+        task.status = status;
         await task.save();
 
         res.json(task);
