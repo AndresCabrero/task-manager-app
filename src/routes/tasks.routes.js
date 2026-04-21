@@ -1,5 +1,6 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth.middleware');
+const upload = require('../middleware/upload.middleware');
 
 const router = express.Router();
 const Task = require('../models/Task');
@@ -33,8 +34,8 @@ router.get('/tasks', authMiddleware, async (req, res) => {
     }
 });
 
-// Agregar una nueva tarea
-router.post('/tasks', authMiddleware, async (req, res) => {
+// Agregar una nueva tarea con imagen opcional
+router.post('/tasks', authMiddleware, upload.single('image'), async (req, res) => {
     try {
         const { title } = req.body;
 
@@ -42,9 +43,12 @@ router.post('/tasks', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: 'El título es obligatorio' });
         }
 
+        const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+
         const newTask = new Task({
             title,
             status: 'pendiente',
+            imageUrl,
             userId: req.userId
         });
 
