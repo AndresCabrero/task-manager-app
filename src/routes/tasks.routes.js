@@ -8,9 +8,6 @@ const User = require('../models/user.model');
 // Obtener tareas según el rol
 router.get('/tasks', authMiddleware, async (req, res) => {
     try {
-        console.log('USER ID:', req.userId);
-        console.log('USER ROLE:', req.userRole);
-
         let tasks;
 
         if (req.userRole === 'admin') {
@@ -56,9 +53,16 @@ router.put('/tasks/:id', authMiddleware, async (req, res) => {
         const { id } = req.params;
         const { completed } = req.body;
 
-        const task = await Task.findById(id);
+        let task;
+
+        if (req.userRole === 'admin') {
+            task = await Task.findById(id);
+        } else {
+            task = await Task.findOne({ _id: id, userId: req.userId });
+        }
+
         if (!task) {
-            return res.status(404).json({ error: "Tarea no encontrada" });
+            return res.status(404).json({ error: 'Tarea no encontrada o no tienes permiso para modificarla' });
         }
 
         task.completed = completed;
@@ -74,8 +78,22 @@ router.put('/tasks/:id', authMiddleware, async (req, res) => {
 router.delete('/tasks/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
+
+        let task;
+
+        if (req.userRole === 'admin') {
+            task = await Task.findById(id);
+        } else {
+            task = await Task.findOne({ _id: id, userId: req.userId });
+        }
+
+        if (!task) {
+            return res.status(404).json({ error: 'Tarea no encontrada o no tienes permiso para eliminarla' });
+        }
+
         await Task.findByIdAndDelete(id);
-        res.json({ message: "Tarea eliminada" });
+
+        res.json({ message: 'Tarea eliminada' });
     } catch (error) {
         res.status(500).json({ error: 'Error al eliminar la tarea' });
     }
