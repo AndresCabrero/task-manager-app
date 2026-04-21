@@ -19,7 +19,7 @@ router.post('/tasks', authMiddleware, async (req, res) => {
     try {
         const { title } = req.body;
         if (!title) return res.status(400).json({ error: "El título es obligatorio" });
-        
+
         const newTask = new Task({ title, completed: false, userId: req.userId });
         await newTask.save();
         res.json(newTask);
@@ -28,14 +28,20 @@ router.post('/tasks', authMiddleware, async (req, res) => {
     }
 });
 
-// Marcar una tarea como completada
-router.put('/tasks/:id', async (req, res) => {
+// Actualizar una tarea
+router.put('/tasks/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
+        const { completed } = req.body;
+
         const task = await Task.findById(id);
-        if (!task) return res.status(404).json({ error: "Tarea no encontrada" });
-        task.completed = !task.completed;
+        if (!task) {
+            return res.status(404).json({ error: "Tarea no encontrada" });
+        }
+
+        task.completed = completed;
         await task.save();
+
         res.json(task);
     } catch (error) {
         res.status(500).json({ error: 'Error al actualizar la tarea' });
@@ -43,7 +49,7 @@ router.put('/tasks/:id', async (req, res) => {
 });
 
 // Eliminar una tarea
-router.delete('/tasks/:id', async (req, res) => {
+router.delete('/tasks/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         await Task.findByIdAndDelete(id);

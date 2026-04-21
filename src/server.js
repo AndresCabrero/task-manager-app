@@ -13,7 +13,10 @@ app.use(express.json());
 connectDB();
 
 const taskRoutes = require('./routes/tasks.routes');
+const authRoutes = require('./routes/auth.routes');
+
 app.use('/api', taskRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
     res.send('¡Servidor funcionando!');
