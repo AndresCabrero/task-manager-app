@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user.model');
 
 const router = express.Router();
-const SECRET_KEY = 'mi_secreto'; // Cambiar por una clave segura
+const SECRET_KEY = 'mi_secreto'; // Más adelante una clave mas fuerte para que sea más seguro
 
 // Registro de usuario
 router.post('/register', async (req, res) => {
@@ -36,7 +36,12 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Credenciales incorrectas' });
         }
 
-        const token = jwt.sign({ userId: user._id }, SECRET_KEY, { expiresIn: '1h' });
+        const token = jwt.sign(
+            { userId: user._id, role: user.role },
+            SECRET_KEY,
+            { expiresIn: '1h' }
+        );
+
         res.json({ token });
     } catch (error) {
         res.status(500).json({ error: 'Error en el servidor' });

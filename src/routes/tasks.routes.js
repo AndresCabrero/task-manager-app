@@ -3,11 +3,33 @@ const authMiddleware = require('../middleware/auth.middleware');
 
 const router = express.Router();
 const Task = require('../models/Task');
+const User = require('../models/user.model');
 
-// Obtener todas las tareas
+// Obtener tareas según el rol
 router.get('/tasks', authMiddleware, async (req, res) => {
     try {
-        const tasks = await Task.find({ userId: req.userId });
+        console.log('USER ID:', req.userId);
+        console.log('USER ROLE:', req.userRole);
+
+        let tasks;
+
+        if (req.userRole === 'admin') {
+            const allTasks = await Task.find();
+            const users = await User.find({}, 'username');
+
+            const userMap = {};
+            users.forEach(user => {
+                userMap[user._id.toString()] = user.username;
+            });
+
+            tasks = allTasks.map(task => ({
+                ...task.toObject(),
+                username: userMap[task.userId] || 'Desconocido'
+            }));
+        } else {
+            tasks = await Task.find({ userId: req.userId });
+        }
+
         res.json(tasks);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener tareas' });
