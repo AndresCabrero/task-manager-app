@@ -103,17 +103,13 @@ router.post('/tasks', authMiddleware, upload.single('image'), async (req, res) =
     }
 });
 
-// Actualizar estado de una tarea
+// Actualizar tarea (título y/o estado)
 router.put('/tasks/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, title } = req.body;
 
         const validStatuses = ['pendiente', 'en_progreso', 'completada'];
-
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ error: 'Estado no válido' });
-        }
 
         let task;
 
@@ -127,7 +123,22 @@ router.put('/tasks/:id', authMiddleware, async (req, res) => {
             return res.status(404).json({ error: 'Tarea no encontrada o no tienes permiso para modificarla' });
         }
 
-        task.status = status;
+        if (status !== undefined) {
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({ error: 'Estado no válido' });
+            }
+
+            task.status = status;
+        }
+
+        if (title !== undefined) {
+            if (!title.trim()) {
+                return res.status(400).json({ error: 'El título no puede estar vacío' });
+            }
+
+            task.title = title.trim();
+        }
+
         await task.save();
 
         const updatedTask = await Task.findById(task._id).populate('categories');
