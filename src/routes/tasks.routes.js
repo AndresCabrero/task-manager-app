@@ -6,9 +6,9 @@ const adminMiddleware = require('../middleware/admin.middleware');
 const upload = require('../middleware/upload.middleware');
 
 const router = express.Router();
-const Task = require('../models/Task');
+const Task = require('../models/task');
 const User = require('../models/user.model');
-const Category = require('../models/Category');
+const Category = require('../models/category');
 
 // Ruta solo para administradores: ver todas las tareas
 router.get('/admin/tasks', authMiddleware, adminMiddleware, async (req, res) => {

@@ -1,0 +1,23 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: taskmanager_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: .
+    container_name: taskmanager_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:
