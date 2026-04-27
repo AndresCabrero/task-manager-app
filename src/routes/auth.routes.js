@@ -33,7 +33,7 @@ router.post('/login', async (req, res) => {
         const user = await User.findOne({ username });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ error: 'Credenciales incorrectas' });
+            return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
         }
 
         const token = jwt.sign(
