@@ -21,6 +21,21 @@ const MAX_USERNAME_LENGTH = 20;
 const MAX_NAME_LENGTH = 50;
 const MAX_EMAIL_LENGTH = 70;
 
+// Validación de contraseña fuerte
+const isStrongPassword = (password) => {
+    const minLength = 8; // Mínimo 8 carácteres por contraseña
+    const hasUppercase = /[A-Z]/.test(password); // Minimo una letra mayúscula
+    const hasNumber = /[0-9]/.test(password); // Mínimo un número
+    const hasSpecialChar = /[^A-Za-z0-9]/.test(password); // Mínimo un carácter especial
+
+    return (
+        password.length >= minLength &&
+        hasUppercase &&
+        hasNumber &&
+        hasSpecialChar
+    );
+};
+
 // Registro de usuario
 router.post('/register', async (req, res) => {
     try {
@@ -43,6 +58,13 @@ router.post('/register', async (req, res) => {
         if (email.length > MAX_EMAIL_LENGTH) {
             return res.status(400).json({
                 error: `El email no puede superar los ${MAX_EMAIL_LENGTH} caracteres`
+            });
+        }
+
+        // Validación de contraseña segura
+        if (!isStrongPassword(password)) {
+            return res.status(400).json({
+                error: 'La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial'
             });
         }
 
