@@ -4,6 +4,9 @@ const Category = require('../models/category');
 
 const router = express.Router();
 
+// Límite máximo para el nombre de la categoría
+const MAX_CATEGORY_NAME_LENGTH = 15;
+
 // Obtener categorías del usuario
 router.get('/categories', authMiddleware, async (req, res) => {
     try {
@@ -23,8 +26,17 @@ router.post('/categories', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: 'El nombre es obligatorio' });
         }
 
+        const trimmedName = name.trim();
+
+        // Validamos longitud máxima 
+        if (trimmedName.length > MAX_CATEGORY_NAME_LENGTH) {
+            return res.status(400).json({
+                error: `El nombre no puede superar los ${MAX_CATEGORY_NAME_LENGTH} caracteres`
+            });
+        }
+
         const newCategory = new Category({
-            name,
+            name: trimmedName,
             userId: req.userId
         });
 

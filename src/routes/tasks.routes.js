@@ -10,6 +10,9 @@ const Task = require('../models/task');
 const User = require('../models/user.model');
 const Category = require('../models/category');
 
+// Límite máximo para el título de una tarea
+const MAX_TASK_TITLE_LENGTH = 30;
+
 // Ruta solo para administradores: ver todas las tareas
 router.get('/admin/tasks', authMiddleware, adminMiddleware, async (req, res) => {
     try {
@@ -67,6 +70,13 @@ router.post('/tasks', authMiddleware, upload.single('image'), async (req, res) =
 
         if (!title) {
             return res.status(400).json({ error: 'El título es obligatorio' });
+        }
+
+        // Validar que el titulo no supera el máximo de carateres indicados
+        if (title.length > MAX_TASK_TITLE_LENGTH) {
+            return res.status(400).json({
+                error: `El título no puede superar los ${MAX_TASK_TITLE_LENGTH} caracteres`
+            });
         }
 
         const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
@@ -132,13 +142,21 @@ router.put('/tasks/:id', authMiddleware, async (req, res) => {
         }
 
         if (title !== undefined) {
-            if (!title.trim()) {
+            const trimmedTitle = title.trim();
+
+            if (!trimmedTitle) {
                 return res.status(400).json({ error: 'El título no puede estar vacío' });
             }
 
-            task.title = title.trim();
-        }
+            // Validamos también cuando se edita una tarea para que no supere el máximo de caracteres establecidos
+            if (trimmedTitle.length > MAX_TASK_TITLE_LENGTH) {
+                return res.status(400).json({
+                    error: `El título no puede superar los ${MAX_TASK_TITLE_LENGTH} caracteres`
+                });
+            }
 
+            task.title = trimmedTitle;
+        }
         await task.save();
 
         const updatedTask = await Task.findById(task._id).populate('categories');

@@ -16,10 +16,35 @@ const BLOCK_TIMES_MS = [
     20 * 1000
 ];
 
+// Límites máximos de caracteres para evitar datos demasiado largos
+const MAX_USERNAME_LENGTH = 20;
+const MAX_NAME_LENGTH = 50;
+const MAX_EMAIL_LENGTH = 70;
+
 // Registro de usuario
 router.post('/register', async (req, res) => {
     try {
         const { username, password, name, email } = req.body;
+
+        // Para validar que tienen un tamaño maximo de caractares. 
+        // Solo con usar max.length en el front no sirve para validarlo bien.
+        if (username.length > MAX_USERNAME_LENGTH) {
+            return res.status(400).json({
+                error: `El usuario no puede superar los ${MAX_USERNAME_LENGTH} caracteres`
+            });
+        }
+
+        if (name.length > MAX_NAME_LENGTH) {
+            return res.status(400).json({
+                error: `El nombre no puede superar los ${MAX_NAME_LENGTH} caracteres`
+            });
+        }
+
+        if (email.length > MAX_EMAIL_LENGTH) {
+            return res.status(400).json({
+                error: `El email no puede superar los ${MAX_EMAIL_LENGTH} caracteres`
+            });
+        }
 
         const user = new User({
             username,
@@ -41,6 +66,13 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
+        
+        // Validamos longitud del usuario también en login.
+        if (username.length > MAX_USERNAME_LENGTH) {
+            return res.status(400).json({
+                error: `El usuario no puede superar los ${MAX_USERNAME_LENGTH} caracteres`
+            });
+        }
 
         const user = await User.findOne({ username });
 
