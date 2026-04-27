@@ -43,10 +43,12 @@ connectDB();
 const taskRoutes = require('./routes/tasks.routes');
 const authRoutes = require('./routes/auth.routes');
 const categoryRoutes = require('./routes/category.routes');
+const adminRoutes = require('./routes/admin.routes'); 
 
 app.use('/api', taskRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
     res.send('¡Servidor funcionando!');
