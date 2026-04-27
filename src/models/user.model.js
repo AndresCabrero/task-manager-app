@@ -19,6 +19,26 @@ const UserSchema = new mongoose.Schema({
         type: String, 
         enum: ['user', 'admin'], 
         default: 'user' 
+    },
+
+    failedLoginAttempts: { // Fallos actuales antes del último bloqueo
+        type: Number,
+        default: 0
+    },
+
+    loginBlockCount: { // Cuantas veces se ha bloqueado la cuenta
+        type: Number,
+        default: 0
+    },
+
+    blockedUntil: { // Hasta cuando está bloqueada temporalmente
+        type: Date,
+        default: null
+    },
+
+    isAdminBlocked: { // Bloqueo definitivo hasta que el administrador lo reactive
+        type: Boolean,
+        default: false
     }
 
 }, { timestamps: true });
