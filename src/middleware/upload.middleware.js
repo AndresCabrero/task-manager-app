@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Tamaño máximo permitido: 2 MB
-const MAX_FILE_SIZE = 2 * 1024 * 1024;
+const MAX_FILE_SIZE = 2 * 2024 * 2024;
 
 // Tipos permitidos
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];

@@ -7,6 +7,12 @@ const router = express.Router();
 // Límite máximo para el nombre de la categoría
 const MAX_CATEGORY_NAME_LENGTH = 15;
 
+// Comprueba que un valor sea un texto válido.
+// Evita que lleguen objetos, arrays, null, números, etc.
+const isValidString = (value) => {
+    return typeof value === 'string' && value.trim().length > 0;
+};
+
 // Obtener categorías del usuario
 router.get('/categories', authMiddleware, async (req, res) => {
     try {
@@ -22,8 +28,10 @@ router.post('/categories', authMiddleware, async (req, res) => {
     try {
         const { name } = req.body;
 
-        if (!name) {
-            return res.status(400).json({ error: 'El nombre es obligatorio' });
+        if (!isValidString(name)) {
+            return res.status(400).json({
+                error: 'El nombre es obligatorio y debe ser texto válido'
+            });
         }
 
         const trimmedName = name.trim();

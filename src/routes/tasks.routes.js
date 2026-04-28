@@ -13,6 +13,13 @@ const Category = require('../models/category');
 // Límite máximo para el título de una tarea
 const MAX_TASK_TITLE_LENGTH = 30;
 
+// Comprueba que un valor sea un texto válido.
+// Evita que lleguen objetos, arrays, null, números, etc.
+// Ejemplo peligroso que rechazamos: { "$ne": null }
+const isValidString = (value) => {
+    return typeof value === 'string' && value.trim().length > 0;
+};
+
 // Ruta solo para administradores: ver todas las tareas
 router.get('/admin/tasks', authMiddleware, adminMiddleware, async (req, res) => {
     try {
@@ -68,12 +75,16 @@ router.post('/tasks', authMiddleware, upload.single('image'), validateUploadedIm
     try {
         const { title, categories } = req.body;
 
-        if (!title) {
-            return res.status(400).json({ error: 'El título es obligatorio' });
+        // Validamos que el título sea un string real.
+        // Evita payloads NoSQL como { "$ne": null }.
+        if (!isValidString(title)) {
+            return res.status(400).json({ error: 'El título es obligatorio y debe ser texto válido' });
         }
 
+        const cleanTitle = title.trim();
+
         // Validar que el titulo no supera el máximo de carateres indicados
-        if (title.length > MAX_TASK_TITLE_LENGTH) {
+        if (cleanTitle.length > MAX_TASK_TITLE_LENGTH) {
             return res.status(400).json({
                 error: `El título no puede superar los ${MAX_TASK_TITLE_LENGTH} caracteres`
             });
@@ -97,7 +108,7 @@ router.post('/tasks', authMiddleware, upload.single('image'), validateUploadedIm
         }
 
         const newTask = new Task({
-            title,
+            title: cleanTitle,
             status: 'pendiente',
             imageUrl,
             categories: categoryIds,
@@ -134,21 +145,38 @@ router.put('/tasks/:id', authMiddleware, async (req, res) => {
         }
 
         if (status !== undefined) {
-            if (!validStatuses.includes(status)) {
-                return res.status(400).json({ error: 'Estado no válido' });
+
+            // Validamos que status sea string real
+            if (typeof status !== 'string') {
+                return res.status(400).json({
+                    error: 'Estado no válido'
+                });
             }
 
-            task.status = status;
+            const cleanStatus = status.trim();
+
+            if (!validStatuses.includes(cleanStatus)) {
+                return res.status(400).json({
+                    error: 'Estado no válido'
+                });
+            }
+
+            task.status = cleanStatus;
         }
 
         if (title !== undefined) {
-            const trimmedTitle = title.trim();
-
-            if (!trimmedTitle) {
-                return res.status(400).json({ error: 'El título no puede estar vacío' });
+            // Validamos que el título sea un string real antes de usar trim().
+            // Evita payloads NoSQL como { "$ne": null }.
+            if (!isValidString(title)) {
+                return res.status(400).json({
+                    error: 'El título debe ser texto válido'
+                });
             }
 
-            // Validamos también cuando se edita una tarea para que no supere el máximo de caracteres establecidos
+            const trimmedTitle = title.trim();
+
+            // Validamos también cuando se edita una tarea
+            // para que no supere el máximo de caracteres establecidos.
             if (trimmedTitle.length > MAX_TASK_TITLE_LENGTH) {
                 return res.status(400).json({
                     error: `El título no puede superar los ${MAX_TASK_TITLE_LENGTH} caracteres`
@@ -157,6 +185,7 @@ router.put('/tasks/:id', authMiddleware, async (req, res) => {
 
             task.title = trimmedTitle;
         }
+
         await task.save();
 
         const updatedTask = await Task.findById(task._id).populate('categories');

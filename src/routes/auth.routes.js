@@ -36,43 +36,68 @@ const isStrongPassword = (password) => {
     );
 };
 
+// Comprueba que un valor sea un texto válido.
+// Esto evita que lleguen objetos, arrays, null, números, etc.
+const isValidString = (value) => {
+    return typeof value === 'string' && value.trim().length > 0;
+};
+
 // Registro de usuario
 router.post('/register', async (req, res) => {
     try {
         const { username, password, name, email } = req.body;
 
+        // Validamos que todos los campos esperados sean strings reales.
+        // Esto evita payloads NoSQL como { "$ne": null }.
+        if (
+            !isValidString(username) ||
+            !isValidString(password) ||
+            !isValidString(name) ||
+            !isValidString(email)
+        ) {
+            return res.status(400).json({
+                error: 'Todos los campos son obligatorios y deben ser texto válido'
+            });
+        }
+
+        // Normalizamos los datos quitando espacios innecesarios
+        const cleanUsername = username.trim();
+        const cleanPassword = password.trim();
+        const cleanName = name.trim();
+        const cleanEmail = email.trim().toLowerCase();
+
         // Para validar que tienen un tamaño maximo de caractares. 
         // Solo con usar max.length en el front no sirve para validarlo bien.
-        if (username.length > MAX_USERNAME_LENGTH) {
+        if (cleanUsername.length > MAX_USERNAME_LENGTH) {
             return res.status(400).json({
                 error: `El usuario no puede superar los ${MAX_USERNAME_LENGTH} caracteres`
             });
         }
 
-        if (name.length > MAX_NAME_LENGTH) {
+        if (cleanName.length > MAX_NAME_LENGTH) {
             return res.status(400).json({
                 error: `El nombre no puede superar los ${MAX_NAME_LENGTH} caracteres`
             });
         }
 
-        if (email.length > MAX_EMAIL_LENGTH) {
+        if (cleanEmail.length > MAX_EMAIL_LENGTH) {
             return res.status(400).json({
                 error: `El email no puede superar los ${MAX_EMAIL_LENGTH} caracteres`
             });
         }
 
         // Validación de contraseña segura
-        if (!isStrongPassword(password)) {
+        if (!isStrongPassword(cleanPassword)) {
             return res.status(400).json({
                 error: 'La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial'
             });
         }
 
         const user = new User({
-            username,
-            password,
-            name,
-            email,
+            username: cleanUsername,
+            password: cleanPassword,
+            name: cleanName,
+            email: cleanEmail,
             role: 'user'
         });
 
@@ -88,15 +113,27 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-        
+
+        // Validamos que username y password sean strings reales.
+        // Evita payloads NoSQL como { "$ne": null }.
+        if (!isValidString(username) || !isValidString(password)) {
+            return res.status(400).json({
+                error: 'Usuario y contraseña deben ser texto válido'
+            });
+        }
+
+        // Normalizamos usuario y contraseña
+        const cleanUsername = username.trim();
+        const cleanPassword = password.trim();
+                
         // Validamos longitud del usuario también en login.
-        if (username.length > MAX_USERNAME_LENGTH) {
+        if (cleanUsername.length > MAX_USERNAME_LENGTH) {
             return res.status(400).json({
                 error: `El usuario no puede superar los ${MAX_USERNAME_LENGTH} caracteres`
             });
         }
 
-        const user = await User.findOne({ username });
+        const user = await User.findOne({ username: cleanUsername });
 
         // Si el usuario no existe, no podemos bloquear una cuenta concreta
         if (!user) {
@@ -137,7 +174,7 @@ router.post('/login', async (req, res) => {
         }
 
         // Contraseña incorrecta
-        if (!(await bcrypt.compare(password, user.password))) {
+        if (!(await bcrypt.compare(cleanPassword, user.password))) {
             user.failedLoginAttempts += 1;
 
             if (user.failedLoginAttempts >= MAX_ATTEMPTS) {
