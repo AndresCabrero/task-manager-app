@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const authMiddleware = require('../middleware/auth.middleware');
 const adminMiddleware = require('../middleware/admin.middleware');
-const upload = require('../middleware/upload.middleware');
+const { upload, validateUploadedImage } = require('../middleware/upload.middleware');
 
 const router = express.Router();
 const Task = require('../models/task');
@@ -64,7 +64,7 @@ router.get('/tasks', authMiddleware, async (req, res) => {
 });
 
 // Agregar una nueva tarea con imagen opcional y categorías
-router.post('/tasks', authMiddleware, upload.single('image'), async (req, res) => {
+router.post('/tasks', authMiddleware, upload.single('image'), validateUploadedImage, async (req, res) => {
     try {
         const { title, categories } = req.body;
 
